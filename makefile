@@ -15,13 +15,12 @@ INCLUDE_FOLDER := -Iinclude
 
 SRCS_GPP := $(shell find src/ -name '*.cpp')
 SRCS_GCC := $(shell find src/ -name '*.c')
-SRCS_SHADER := $(shell find src/shaders/ -name 'shader.*')
 
 DEPS := $(SRCS_GPP:src/%.cpp=obj/%.d) $(SRCS_GCC:src/%.c=obj/%.d)
 OBJS := $(SRCS_GPP:src/%.cpp=obj/%.o) $(SRCS_GCC:src/%.c=obj/%.o)
 
 default: build
-build: create_obj_folders compile_shaders $(OUTPUT_FILE)
+build: create_obj_folders $(OUTPUT_FILE)
 
 rebuild: clean build
 
@@ -31,21 +30,15 @@ run: build
 
 clean:
 	rm -rf obj
-	rm -rf shaders
 
 create_project:
 	mkdir -p src;
-	mkdir -p src/shaders
 	mkdir -p lib;
 	mkdir -p include;
-	mkdir -p shaders;
 
 create_obj_folders: #cria pastas necessarias
 	@mkdir -p $(OBJS:%.o=%)
-	@mkdir -p shaders
 	@rm -rf $(OBJS:%.o=%)
-
-compile_shaders: $(SRCS_SHADER:src/shaders/shader.%=shaders/%.spv)
 
 ##################################################################
 
@@ -57,8 +50,5 @@ obj/%.o: src/%.cpp
 
 obj/%.o: src/%.c
 	gcc $(ATTR_ALL) $(ATTR_GCC) $(INCLUDE_FOLDER) -c $< -o $@
-
-shaders/%.spv: src/shaders/shader.%
-	glslangValidator -V $< -o $@
 
 -include $(DEPS)
