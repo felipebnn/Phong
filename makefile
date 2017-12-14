@@ -30,7 +30,7 @@ run: build
 
 clean:
 	rm -rf obj
-	rm -f *.bmp
+	rm -f images/*
 	rm -f main
 
 create_project:
