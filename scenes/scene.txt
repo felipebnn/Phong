@@ -1,9 +1,9 @@
-size 800 600
-model star
-scale 40
-rotate_x 90
-translate 0 0 0
-albedo 1 1 0
+size 320 240
+model avent
+scale 56
+rotate_x -20
+translate 0 -1 0
+albedo 1 0 0
 kd 0.8 ks 0.2
 n 10
 ambient 0.1 0.1 0.1

@@ -25,10 +25,6 @@ struct Vertex {
 	glm::vec3 normal;
 };
 
-struct Triangle {
-	size_t index1, index2, index3;
-};
-
 struct Light {
 	glm::vec3 pos;
 	glm::vec3 color;
