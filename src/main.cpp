@@ -42,7 +42,7 @@ private:
 	std::vector<Light> lights;
 	std::vector<Light> transformed_lights;
 
-	std::vector<uint32_t> data;
+	std::vector<uint32_t> imageData;
 
 	int width;
 	int height;
@@ -55,6 +55,7 @@ private:
 	float Kd;
 	float Ks;
 	float n;
+	glm::vec3 ambient;
 
 	glm::vec3 camera;
 
@@ -121,7 +122,7 @@ private:
 				pixelCount = width * height;
 
 				model = glm::translate(model, glm::vec3{width/2, -height/2, 0});
-				data.resize(pixelCount);
+				imageData.resize(pixelCount);
 			} else if (name == "model") {
 				std::string modelName;
 				sceneFile >> modelName;
@@ -160,6 +161,8 @@ private:
 				sceneFile >> Ks;
 			} else if (name == "n") {
 				sceneFile >> n;
+			} else if (name == "ambient") {
+				sceneFile >> ambient.x >> ambient.y >> ambient.z;
 			} else if (name == "cameraz") {
 				float cameraZ;
 				sceneFile >> cameraZ;
@@ -245,8 +248,7 @@ private:
 			
 			if (rayTriangleIntersect(camera, ray, v0.pos, v1.pos, v2.pos, t, u, v) && t > -epsilon && t < currentDistance) {
 				#ifdef BARYCENTER_INTERPOLATION
-				float w = 1 - u - v;
-				glm::vec3 normal = glm::normalize(v0.normal * w + v1.normal * u + v2.normal * v);
+				glm::vec3 normal = v0.normal * (1 - u - v) + v1.normal * u + v2.normal * v;
 				#else
 				glm::vec3 normal = glm::normalize(glm::cross(v2.pos - v0.pos, v1.pos - v0.pos));
 				#endif
@@ -262,19 +264,18 @@ private:
 					specular += light.color * std::pow(std::max(0.0f, glm::dot(reflection, -ray)), n);
 				}
 
-				color = diffuse * Kd + specular * Ks;
+				color = albedo * ambient + diffuse * Kd + specular * Ks;
 
-				for (size_t j=0; j<3; ++j) {
-					if (color[j] > 1) {
-						color[j] = 1;
-						std::cerr << "Color channel maxed out!" << std::endl;
-					}
-				}
 				currentDistance = t;
 			}
 		}
-
-		data[x + y * width] = int(color[0] * 255) | (int(color[1] * 255) << 8) | (int(color[2] * 255) << 16) | (0xFF << 24);
+		
+		for (size_t j=0; j<3; ++j) {
+			if (color[j] > 1) {
+				color[j] = 1;
+			}
+		}
+		imageData[x + y * width] = int(color[0] * 255) | (int(color[1] * 255) << 8) | (int(color[2] * 255) << 16) | (0xFF << 24);
 	}
 
 	void workerFunction() {
@@ -286,16 +287,16 @@ private:
 				std::lock_guard<std::mutex> lg(jobsMutex);
 				#endif
 
+				if (drawingIndex % (pixelCount / 100) == 0) {
+					std::cout << "\rRender process: " << 100 * drawingIndex / pixelCount << "%";
+					std::cout.flush();
+				}
+
 				if (drawingIndex >= pixelCount) {
 					break;
 				}
 
 				currentIndex = drawingIndex++;
-			}
-
-			if (currentIndex % (pixelCount / 100) == 0) {
-				std::cout << "\rRender process: " << 100 * currentIndex / pixelCount << "%";
-				std::cout.flush();
 			}
 
 			calculatePixel(currentIndex % width, currentIndex / width);
@@ -342,7 +343,7 @@ public:
 
 		std::cout << std::endl << std::endl;
 
-		stbi_write_bmp(("images/" + sceneName + ".bmp").c_str(), width, height, 4, data.data());
+		stbi_write_bmp(("images/" + sceneName + ".bmp").c_str(), width, height, 4, imageData.data());
 	}
 
 	void killThreads() {
