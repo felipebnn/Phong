@@ -30,6 +30,8 @@ run: build
 
 clean:
 	rm -rf obj
+	rm -f *.bmp
+	rm -f main
 
 create_project:
 	mkdir -p src;

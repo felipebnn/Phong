@@ -1,19 +1,15 @@
 #include <cmath>
 
 #include <iostream>
+#include <fstream>
 #include <vector>
 
-#define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
-
-#define TINYOBJLOADER_IMPLEMENTATION
 #include "tiny_obj_loader.h"
 
 #define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-
-#define CULLING
 
 struct Vertex {
 	glm::vec3 pos;
@@ -109,11 +105,7 @@ bool rayTriangleIntersect(const glm::vec3& orig, const glm::vec3& dir, const glm
 	glm::vec3 pvec = glm::cross(dir, v0v2);
 	float det = glm::dot(v0v1, pvec);
 
-	#ifdef CULLING
 	if (det < epsilon) return false;
-	#else
-	if (fabs(det) < epsilon) return false;
-	#endif
 
 	float invDet = 1 / det;
 
