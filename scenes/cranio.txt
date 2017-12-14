@@ -1,6 +1,6 @@
-size 200 200
+size 800 600
 model skull
-scale 28
+scale 84
 rotate_y 160
 translate 0 -3.28 0
 albedo 1 1 1

@@ -1,6 +1,6 @@
-size 200 200
+size 800 600
 model soccer
-scale 2
+scale 8
 translate -5 -35 0
 albedo 1 1 1
 kd 0.8 ks 0.2

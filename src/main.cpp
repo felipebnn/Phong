@@ -89,14 +89,16 @@ private:
 				};
 
 				if (index.normal_index == -1) {
+					#ifdef BARYCENTER_INTERPOLATION
 					throw std::runtime_error("no normals on model");
+					#endif
+				} else {
+					vertex.normal = {
+						attrib.normals[3 * index.normal_index + 0],
+						attrib.normals[3 * index.normal_index + 1],
+						attrib.normals[3 * index.normal_index + 2]
+					};
 				}
-
-				vertex.normal = {
-					attrib.normals[3 * index.normal_index + 0],
-					attrib.normals[3 * index.normal_index + 1],
-					attrib.normals[3 * index.normal_index + 2]
-				};
 
 				vertices.push_back(vertex);
 			}
@@ -248,7 +250,7 @@ private:
 				float w = 1 - u - v;
 				glm::vec3 normal = glm::normalize(v0.normal * w + v1.normal * u + v2.normal * v);
 				#else
-				glm::vec3 normal = glm::normalize(glm::cross(v1.pos - v0.pos, v2.pos - v0.pos));
+				glm::vec3 normal = glm::normalize(glm::cross(v2.pos - v0.pos, v1.pos - v0.pos));
 				#endif
 
 				glm::vec3 hitPoint = camera + ray * t;
