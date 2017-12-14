@@ -367,9 +367,9 @@ int main(int argc, char const *argv[]) {
 				sceneName = sceneName.substr(0, sceneName.length() - 4);
 			}
 
-			size_t pos = sceneName.find('/');
+			size_t pos = sceneName.rfind('/');
 			if (pos != std::string::npos) {
-				sceneName = sceneName.substr(pos+1, sceneName.length() - pos - 1);
+				sceneName = sceneName.substr(pos+1, std::string::npos);
 			}
 
 			p.run(sceneName);
