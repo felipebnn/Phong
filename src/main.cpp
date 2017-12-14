@@ -1,6 +1,7 @@
 #define THREADED
 #define BARYCENTER_INTERPOLATION
 
+#include <csignal>
 #include <cmath>
 
 #include <iostream>
@@ -181,12 +182,7 @@ private:
 		view = glm::scale(view, glm::vec3{1, -1, 1});
 
 		glm::mat4 mv = view * model;
-
-		glm::mat4 normal_mv = mv;
-		normal_mv[3][0] = 0;
-		normal_mv[3][1] = 0;
-		normal_mv[3][2] = 0;
-		normal_mv = glm::transpose(glm::inverse(normal_mv));
+		glm::mat3 normal_mv = glm::transpose(glm::inverse(glm::mat3{mv}));
 
 		transformed_vertices.resize(vertices.size());
 		for (size_t i=0; i<vertices.size(); ++i) {
@@ -194,7 +190,7 @@ private:
 			Vertex& transformed_v = transformed_vertices[i];
 
 			transformed_v.pos = mv * glm::vec4{v.pos, 1.0f};
-			transformed_v.normal = glm::normalize(normal_mv * glm::vec4{v.normal, 1.0f});
+			transformed_v.normal = glm::normalize(normal_mv * v.normal);
 		}
 
 		transformed_lights.resize(lights.size());
@@ -213,7 +209,7 @@ private:
 		glm::vec3 pvec = glm::cross(dir, v0v2);
 		float det = glm::dot(v0v1, pvec);
 
-		if (det > epsilon) return false; //culling
+		if (det > -epsilon) return false; //culling
 
 		float invDet = 1 / det;
 
@@ -290,6 +286,10 @@ private:
 				std::lock_guard<std::mutex> lg(jobsMutex);
 				#endif
 
+				if (drawingIndex >= pixelCount) {
+					break;
+				}
+
 				currentIndex = drawingIndex++;
 			}
 
@@ -297,11 +297,6 @@ private:
 				std::cout << "\rRender process: " << 100 * currentIndex / pixelCount << "%";
 				std::cout.flush();
 			}
-
-			if (currentIndex >= pixelCount) {
-				break;
-			}
-
 
 			calculatePixel(currentIndex % width, currentIndex / width);
 		}
@@ -314,7 +309,7 @@ private:
 
 		workers.resize(0);
 		for (size_t i=0; i<threadCount; ++i) {
-			workers.emplace_back(workerFunction, this);
+			workers.emplace_back(&Phong::workerFunction, this);
 		}
 	}
 
