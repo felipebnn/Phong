@@ -326,6 +326,8 @@ public:
 
 		loadScene("scenes/" + sceneName + ".txt");
 
+		std::cout << vertices.size() / 3 << " triangles..." << std::endl;
+
 		applyTransformation();
 
 		drawingIndex = 0;
