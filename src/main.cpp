@@ -351,14 +351,15 @@ public:
 };
 
 Phong p;
+bool running = true;
 
 int main(int argc, char const *argv[]) {
-	signal(SIGINT, [] (int) { p.killThreads(); });
+	signal(SIGINT, [] (int) { p.killThreads(); running = false; });
 
 	if (argc == 1) {
 		p.run("scene");
 	} else {
-		for (int i=1; i<argc; ++i) {
+		for (int i=1; i<argc && running; ++i) {
 			std::string sceneName = argv[i];
 			std::string extension = ".txt";
 
