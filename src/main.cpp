@@ -181,10 +181,12 @@ private:
 		view = glm::scale(view, glm::vec3{1, -1, 1});
 
 		glm::mat4 mv = view * model;
-		glm::mat4 normal_mv = glm::transpose(glm::inverse(mv));
-		normal_mv[0][3] = 0;
-		normal_mv[1][3] = 0;
-		normal_mv[2][3] = 0;
+
+		glm::mat4 normal_mv = mv;
+		normal_mv[3][0] = 0;
+		normal_mv[3][1] = 0;
+		normal_mv[3][2] = 0;
+		normal_mv = glm::transpose(glm::inverse(normal_mv));
 
 		transformed_vertices.resize(vertices.size());
 		for (size_t i=0; i<vertices.size(); ++i) {
