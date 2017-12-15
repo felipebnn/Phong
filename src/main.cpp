@@ -4,14 +4,17 @@
 #include <csignal>
 #include <cmath>
 
+#include <algorithm>
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <memory>
 
 #ifdef THREADED
 #include <thread>
 #include <mutex>
 #endif
+
 
 #include "stb_image_write.h"
 #include "tiny_obj_loader.h"
@@ -28,6 +31,11 @@ struct Vertex {
 struct Light {
 	glm::vec3 pos;
 	glm::vec3 color;
+};
+
+struct KdNode {
+	std::unique_ptr<KdNode> left, right;
+	std::vector<size_t> vertices;
 };
 
 class Phong {
@@ -202,6 +210,44 @@ private:
 		}
 	}
 
+	std::unique_ptr<KdNode> buildKdNode(std::vector<size_t>::iterator begin, std::vector<size_t>::iterator end, int level) {
+		if (end - begin < 10) { //TODO: mudar para variavel
+			return std::unique_ptr<KdNode>(new KdNode{nullptr, nullptr, std::vector<size_t>(begin, end)}); //TODO: make_unique
+		}
+
+		switch (level) {
+			case 0:
+				std::sort(begin, end, [this] (int idx1, int idx2) { return transformed_vertices[idx1].pos.x < transformed_vertices[idx2].pos.x; });
+				break;
+
+			case 1:
+				std::sort(begin, end, [this] (int idx1, int idx2) { return transformed_vertices[idx1].pos.y < transformed_vertices[idx2].pos.y; });
+				break;
+
+			case 2:
+				std::sort(begin, end, [this] (int idx1, int idx2) { return transformed_vertices[idx1].pos.z < transformed_vertices[idx2].pos.z; });
+				break;
+		}
+
+		auto mid = begin + (end - begin) / 2;
+
+		std::unique_ptr<KdNode> ans(new KdNode());
+		ans->left = buildKdNode(begin, mid, (level+1) % 3);
+		ans->right = buildKdNode(mid+1, end, (level+1) % 3);
+
+		return ans;
+	}
+
+	void buildKdTree() {
+		std::vector<size_t> triangles;
+
+		for (size_t i=0; i<transformed_vertices.size(); ++i) {
+			triangles.push_back(i);
+		}
+
+		std::unique_ptr<KdNode> kdRoot = buildKdNode(triangles.begin(), triangles.end(), 0);
+	}
+
 	bool rayTriangleIntersect(const glm::vec3& orig, const glm::vec3& dir, const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2, float& t, float& u, float& v) {
 		glm::vec3 v0v1 = v1 - v0;
 		glm::vec3 v0v2 = v2 - v0;
@@ -329,6 +375,8 @@ public:
 		std::cout << vertices.size() / 3 << " triangles..." << std::endl;
 
 		applyTransformation();
+
+		buildKdTree();
 
 		drawingIndex = 0;
 
