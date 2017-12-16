@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <memory>
 
 #include "boundingbox.h"
@@ -11,4 +12,6 @@ struct KdNode {
 	std::unique_ptr<KdNode> right;
 	Triangle* triangles;
 	size_t triangleCount;
+
+	static std::unique_ptr<KdNode> buildKdNode(Triangle* triangles, size_t triangleCount, int depth);
 };

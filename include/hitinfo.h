@@ -7,7 +7,7 @@ struct HitInfo {
 	float u, v;
 	Triangle triangle;
 
-	operator bool() {
+	inline operator bool() {
 		return t < std::numeric_limits<float>::max();
 	}
 };
