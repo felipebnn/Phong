@@ -5,14 +5,20 @@
 
 #include "triangle.h"
 
-struct Triangle;
-
 struct BoundingBox {
 	glm::vec3 min;
 	glm::vec3 max;
 
-	BoundingBox& expand(const BoundingBox& otherBbox);
-	BoundingBox& expand(const Triangle& triangle);
+	inline BoundingBox& expand(const BoundingBox& otherBbox) {
+		min = glm::min(min, otherBbox.min);
+		max = glm::max(max, otherBbox.max);
+
+		return *this;
+	}
+
+	inline BoundingBox& expand(const Triangle& triangle) {
+		return expand(fromTriangle(triangle));
+	}
 
 	inline static BoundingBox fromTriangle(const Triangle& triangle) {
 		return {

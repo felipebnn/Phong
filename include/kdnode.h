@@ -1,6 +1,6 @@
 #pragma once
 
-#include <algorithm>
+#include <vector>
 #include <memory>
 
 #include "boundingbox.h"
@@ -10,8 +10,7 @@ struct KdNode {
 	BoundingBox bbox;
 	std::unique_ptr<KdNode> left;
 	std::unique_ptr<KdNode> right;
-	Triangle* triangles;
-	size_t triangleCount;
+	Triangle triangle;
 
-	static std::unique_ptr<KdNode> buildKdNode(Triangle* triangles, size_t triangleCount, int depth);
+	static std::unique_ptr<KdNode> buildKdNode(Triangle* trianglesX, size_t triangleCount, int depth);
 };

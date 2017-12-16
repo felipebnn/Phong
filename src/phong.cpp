@@ -22,11 +22,7 @@ void Phong::loadModel(const std::string& modelName) {
 				attrib.vertices[3 * index.vertex_index + 2]
 			};
 
-			if (index.normal_index == -1) {
-				#ifdef BARYCENTER_INTERPOLATION
-				throw std::runtime_error("no normals on model");
-				#endif
-			} else {
+			if (index.normal_index != -1) {
 				vertex.normal = {
 					attrib.normals[3 * index.normal_index + 0],
 					attrib.normals[3 * index.normal_index + 1],
@@ -35,6 +31,23 @@ void Phong::loadModel(const std::string& modelName) {
 			}
 
 			vertices.push_back(vertex);
+		}
+	}
+
+	#ifdef BARYCENTER_INTERPOLATION
+	if (shapes.size() > 0 && shapes[0].mesh.indices.size() > 0 && shapes[0].mesh.indices[0].normal_index == -1)
+	#endif
+	{
+		#ifdef BARYCENTER_INTERPOLATION
+		std::cerr << "No normals on the model!!" << std::endl;
+		#endif
+
+		for (size_t i=0; i<vertices.size(); i+=3) {
+			Vertex& v0 = vertices[i];
+			Vertex& v1 = vertices[i+1];
+			Vertex& v2 = vertices[i+2];
+
+			v0.normal = v1.normal = v2.normal = glm::normalize(glm::cross(v1.pos - v0.pos, v2.pos - v0.pos));
 		}
 	}
 }
@@ -139,7 +152,7 @@ void Phong::applyTransformation() {
 }
 
 void Phong::buildKdTree() {
-	triangles.resize(vertices.size() / 3);
+	std::vector<Triangle> triangles(vertices.size() / 3);
 
 	for (size_t i=0; i<triangles.size(); ++i) {
 		triangles[i] = { &transformed_vertices[3 * i], &transformed_vertices[3 * i + 1], &transformed_vertices[3 * i + 2] };
@@ -155,12 +168,7 @@ void Phong::calculatePixel(int x, int y) {
 	
 	HitInfo hitInfo;
 	if (ray.intersectKdNode(kdTree.get(), hitInfo)) {
-		#ifdef BARYCENTER_INTERPOLATION
-		glm::vec3 normal = hitInfo.triangle.v0->normal * (1 - hitInfo.u - hitInfo.v) + hitInfo.triangle.v1->normal * hitInfo.u + hitInfo.triangle.v2->normal * hitInfo.v;
-		#else
-		glm::vec3 normal = glm::normalize(glm::cross(hitInfo.triangle.v2->pos - hitInfo.triangle.v0->pos, hitInfo.triangle.v1->pos - hitInfo.triangle.v0->pos));
-		#endif
-
+		glm::vec3 normal = hitInfo.triangle->v0->normal * (1 - hitInfo.u - hitInfo.v) + hitInfo.triangle->v1->normal * hitInfo.u + hitInfo.triangle->v2->normal * hitInfo.v;
 		glm::vec3 hitPoint = camera + dir * hitInfo.t;
 		glm::vec3 diffuse, specular;
 
@@ -239,6 +247,7 @@ void Phong::run(const std::string& sceneName) {
 
 	applyTransformation();
 
+	std::cout << "Building KdTree..." << std::endl;
 	buildKdTree();
 
 	drawingIndex = 0;

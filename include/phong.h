@@ -35,8 +35,6 @@ private:
 	std::vector<Vertex> vertices;
 	std::vector<Vertex> transformed_vertices;
 
-	std::vector<Triangle> triangles;
-
 	std::vector<Light> lights;
 	std::vector<Light> transformed_lights;
 

@@ -16,7 +16,7 @@ bool Ray::intersectTriangle(const Triangle& triangle, HitInfo& hitInfo) const {
 
 	glm::vec3 qvec = glm::cross(tvec, v0v1);
 	float v = glm::dot(dir, qvec) * invDet;
-	if (v < 0 || u + v > 1) return false;
+	if (v < 0 || u + v > 1.001f) return false;
 
 	float t = glm::dot(v0v2, qvec) * invDet;
 
@@ -24,7 +24,7 @@ bool Ray::intersectTriangle(const Triangle& triangle, HitInfo& hitInfo) const {
 		hitInfo.t = t;
 		hitInfo.u = u;
 		hitInfo.v = v;
-		hitInfo.triangle = triangle;
+		hitInfo.triangle = &triangle;
 	}
 
 	return true;
@@ -36,9 +36,7 @@ bool Ray::intersectKdNode(KdNode* node, HitInfo& hitInfo) const {
 			intersectKdNode(node->left.get(), hitInfo);
 			intersectKdNode(node->right.get(), hitInfo);
 		} else {
-			for (size_t i=0; i<node->triangleCount; ++i) {
-				intersectTriangle(node->triangles[i], hitInfo);
-			}
+			intersectTriangle(node->triangle, hitInfo);
 		}
 	}
 
