@@ -72,7 +72,6 @@ private:
 	void loadScene(const std::string& sceneFileName);
 	void applyTransformation();
 	void buildKdTree();
-	glm::vec3 reflect(const glm::vec3& I, const glm::vec3& N) const;
 	void calculatePixel(int x, int y);
 
 	void workerFunction();

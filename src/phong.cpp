@@ -148,15 +148,10 @@ void Phong::buildKdTree() {
 	kdTree = KdNode::buildKdNode(triangles.data(), triangles.size(), 0);
 }
 
-glm::vec3 Phong::reflect(const glm::vec3& I, const glm::vec3& N) const {
-    return I - 2 * glm::dot(I, N) * N;
-}
-
 void Phong::calculatePixel(int x, int y) {
 	glm::vec3 dir = glm::normalize(glm::vec3{x, y, 0} - camera);
-	Ray ray { camera, dir };
-
 	glm::vec3 color { 0.1, 0.1, 0.1 };
+	Ray ray { camera, dir };
 	
 	HitInfo hitInfo;
 	if (ray.intersectKdNode(kdTree.get(), hitInfo)) {
@@ -171,7 +166,7 @@ void Phong::calculatePixel(int x, int y) {
 
 		for (const Light& light : transformed_lights) {
 			glm::vec3 lightDir = glm::normalize(hitPoint - light.pos);
-			glm::vec3 reflection = reflect(lightDir, normal);
+			glm::vec3 reflection = glm::reflect(lightDir, normal);
 
 			diffuse += albedo * light.color * std::max(0.0f, glm::dot(normal, - lightDir));
 			specular += light.color * std::pow(std::max(0.0f, glm::dot(reflection, -dir)), n);
