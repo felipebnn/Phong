@@ -27,6 +27,7 @@
 #include "light.h"
 #include "kdnode.h"
 #include "boundingbox.h"
+#include "hitinfo.h"
 
 class Phong {
 private:
@@ -71,9 +72,9 @@ private:
 	void applyTransformation();
 	std::unique_ptr<KdNode> buildKdNode(Triangle* triangles, size_t triangleCount, int depth) const;
 	void buildKdTree();
-	bool rayTriangleIntersect(const glm::vec3& orig, const glm::vec3& dir, const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2, float& t, float& u, float& v) const;
+	bool rayTriangleIntersect(const glm::vec3& orig, const glm::vec3& dir, const Triangle& triangle, HitInfo& hitInfo) const;
 	bool rayBoundingBoxIntersect(const glm::vec3& orig, const glm::vec3& dir, const BoundingBox& bbox) const;
-	bool rayKdNodeIntersection(KdNode* node, const glm::vec3& orig, const glm::vec3& dir, float& t, glm::vec3& color) const;
+	bool rayKdNodeIntersection(KdNode* node, const glm::vec3& orig, const glm::vec3& dir, HitInfo& hitInfo) const;
 	glm::vec3 reflect(const glm::vec3& I, const glm::vec3& N) const;
 	void calculatePixel(int x, int y);
 

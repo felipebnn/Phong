@@ -144,15 +144,9 @@ std::unique_ptr<KdNode> Phong::buildKdNode(Triangle* triangles, size_t triangleC
 	std::unique_ptr<KdNode> node = std::make_unique<KdNode>();
 	node->triangles = triangles;
 	node->triangleCount = triangleCount;
-	node->bbox = {};
 
-	if (triangleCount == 0) {
-		return node;
-	}
-
-	node->bbox = BoundingBox::fromTriangle(triangles[0]); //TODO: bottom-up boundingbox
-	for (size_t i=1; i<triangleCount; ++i) {
-		node->bbox.expand(triangles[i]);
+	if (triangleCount == 1) {
+		node->bbox = BoundingBox::fromTriangle(triangles[0]);
 	}
 
 	if (triangleCount < 2) {
@@ -168,17 +162,18 @@ std::unique_ptr<KdNode> Phong::buildKdNode(Triangle* triangles, size_t triangleC
 				return c0.x < c1.x;
 			case 1:
 				return c0.y < c1.y;
-			case 2:
+			default: //case 2:
 				return c0.z < c1.z;
 		}
-
-		return false;
 	});
 
 	Triangle* mid = triangles + triangleCount / 2;
 
 	node->left = buildKdNode(triangles, mid - triangles, depth + 1);
 	node->right = buildKdNode(mid, triangles + triangleCount - mid, depth + 1);
+
+	node->bbox = node->left->bbox;
+	node->bbox.expand(node->right->bbox);
 
 	return node;
 }
@@ -193,9 +188,9 @@ void Phong::buildKdTree() {
 	kdTree = buildKdNode(triangles.data(), triangles.size(), 0);
 }
 
-bool Phong::rayTriangleIntersect(const glm::vec3& orig, const glm::vec3& dir, const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2, float& t, float& u, float& v) const {
-	glm::vec3 v0v1 = v1 - v0;
-	glm::vec3 v0v2 = v2 - v0;
+bool Phong::rayTriangleIntersect(const glm::vec3& orig, const glm::vec3& dir, const Triangle& triangle, HitInfo& hitInfo) const {
+	glm::vec3 v0v1 = triangle.v1->pos - triangle.v0->pos;
+	glm::vec3 v0v2 = triangle.v2->pos - triangle.v0->pos;
 	glm::vec3 pvec = glm::cross(dir, v0v2);
 	float det = glm::dot(v0v1, pvec);
 
@@ -203,15 +198,22 @@ bool Phong::rayTriangleIntersect(const glm::vec3& orig, const glm::vec3& dir, co
 
 	float invDet = 1 / det;
 
-	glm::vec3 tvec = orig - v0;
-	u = glm::dot(tvec, pvec) * invDet;
+	glm::vec3 tvec = orig - triangle.v0->pos;
+	float u = glm::dot(tvec, pvec) * invDet;
 	if (u < 0 || u > 1) return false;
 
 	glm::vec3 qvec = glm::cross(tvec, v0v1);
-	v = glm::dot(dir, qvec) * invDet;
+	float v = glm::dot(dir, qvec) * invDet;
 	if (v < 0 || u + v > 1) return false;
 
-	t = glm::dot(v0v2, qvec) * invDet;
+	float t = glm::dot(v0v2, qvec) * invDet;
+
+	if (t < hitInfo.t) {
+		hitInfo.t = t;
+		hitInfo.u = u;
+		hitInfo.v = v;
+		hitInfo.triangle = triangle;
+	}
 
 	return true;
 }
@@ -265,52 +267,19 @@ bool Phong::rayBoundingBoxIntersect(const glm::vec3& orig, const glm::vec3& dir,
 	return true;
 }
 
-bool Phong::rayKdNodeIntersection(KdNode* node, const glm::vec3& orig, const glm::vec3& dir, float& t, glm::vec3& color) const {
+bool Phong::rayKdNodeIntersection(KdNode* node, const glm::vec3& orig, const glm::vec3& dir, HitInfo& hitInfo) const {
 	if (rayBoundingBoxIntersect(orig, dir, node->bbox)) {
 		if (node->left || node->right) {
-			bool hitLeft = rayKdNodeIntersection(node->left.get(), orig, dir, t, color);
-			bool hitRight = rayKdNodeIntersection(node->right.get(), orig, dir, t, color);
-			return hitLeft || hitRight;
+			rayKdNodeIntersection(node->left.get(), orig, dir, hitInfo);
+			rayKdNodeIntersection(node->right.get(), orig, dir, hitInfo);
 		} else {
-			bool hit = false;
-			float currT, u, v;
-
 			for (size_t i=0; i<node->triangleCount; ++i) {
-				const Vertex& v0 = *node->triangles[i].v0;
-				const Vertex& v1 = *node->triangles[i].v1;
-				const Vertex& v2 = *node->triangles[i].v2;
-
-				if (rayTriangleIntersect(orig, dir, v0.pos, v1.pos, v2.pos, currT, u, v) && currT > -epsilon && currT < t) {
-					color = {1, 1, 1};
-					t = currT;
-
-					#ifdef BARYCENTER_INTERPOLATION
-					glm::vec3 normal = v0.normal * (1 - u - v) + v1.normal * u + v2.normal * v;
-					#else
-					glm::vec3 normal = glm::normalize(glm::cross(v2.pos - v0.pos, v1.pos - v0.pos));
-					#endif
-
-					glm::vec3 hitPoint = orig + dir * t;
-					glm::vec3 diffuse, specular;
-
-					for (const Light& light : transformed_lights) {
-						glm::vec3 lightDir = glm::normalize(hitPoint - light.pos);
-						glm::vec3 reflection = reflect(lightDir, normal);
-
-						diffuse += albedo * light.color * std::max(0.0f, glm::dot(normal, - lightDir));
-						specular += light.color * std::pow(std::max(0.0f, glm::dot(reflection, -dir)), n);
-					}
-
-					color = albedo * ambient + diffuse * Kd + specular * Ks;
-
-					hit = true;
-				}
+				rayTriangleIntersect(orig, dir, node->triangles[i], hitInfo);
 			}
-
-			return hit;
 		}
 	}
-	return false;
+
+	return hitInfo;
 }
 
 glm::vec3 Phong::reflect(const glm::vec3& I, const glm::vec3& N) const {
@@ -318,12 +287,31 @@ glm::vec3 Phong::reflect(const glm::vec3& I, const glm::vec3& N) const {
 }
 
 void Phong::calculatePixel(int x, int y) {
-	glm::vec3 color { 0.1, 0.1, 0.1 };
-
 	glm::vec3 ray = glm::normalize(glm::vec3{x, y, 0} - camera);
 
-	float t = std::numeric_limits<float>::max();
-	rayKdNodeIntersection(kdTree.get(), camera, ray, t, color);
+	glm::vec3 color { 0.1, 0.1, 0.1 };
+	
+	HitInfo hitInfo;
+	if (rayKdNodeIntersection(kdTree.get(), camera, ray, hitInfo)) {
+		#ifdef BARYCENTER_INTERPOLATION
+		glm::vec3 normal = hitInfo.triangle.v0->normal * (1 - hitInfo.u - hitInfo.v) + hitInfo.triangle.v1->normal * hitInfo.u + hitInfo.triangle.v2->normal * hitInfo.v;
+		#else
+		glm::vec3 normal = glm::normalize(glm::cross(hitInfo.triangle.v2->pos - hitInfo.triangle.v0->pos, hitInfo.triangle.v1->pos - hitInfo.triangle.v0->pos));
+		#endif
+
+		glm::vec3 hitPoint = camera + ray * hitInfo.t;
+		glm::vec3 diffuse, specular;
+
+		for (const Light& light : transformed_lights) {
+			glm::vec3 lightDir = glm::normalize(hitPoint - light.pos);
+			glm::vec3 reflection = reflect(lightDir, normal);
+
+			diffuse += albedo * light.color * std::max(0.0f, glm::dot(normal, - lightDir));
+			specular += light.color * std::pow(std::max(0.0f, glm::dot(reflection, -ray)), n);
+		}
+
+		color = albedo * ambient + diffuse * Kd + specular * Ks;
+	}
 
 	for (size_t j=0; j<3; ++j) {
 		if (color[j] > 1) {

@@ -11,8 +11,8 @@ struct BoundingBox {
 	glm::vec3 min;
 	glm::vec3 max;
 
-	void expand(const BoundingBox& otherBbox);
-	void expand(const Triangle& triangle);
+	BoundingBox& expand(const BoundingBox& otherBbox);
+	BoundingBox& expand(const Triangle& triangle);
 
 	inline static BoundingBox fromTriangle(const Triangle& triangle) {
 		return {
