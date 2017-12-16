@@ -140,7 +140,7 @@ void Phong::applyTransformation() {
 	}
 }
 
-std::unique_ptr<KdNode> Phong::buildKdNode(size_t* triangles, size_t triangleCount, int depth) {
+std::unique_ptr<KdNode> Phong::buildKdNode(Triangle* triangles, size_t triangleCount, int depth) const {
 	std::unique_ptr<KdNode> node = std::make_unique<KdNode>();
 	node->triangles = triangles;
 	node->triangleCount = triangleCount;
@@ -150,32 +150,32 @@ std::unique_ptr<KdNode> Phong::buildKdNode(size_t* triangles, size_t triangleCou
 		return node;
 	}
 
-	node->bbox = getBoundingBox(triangles[0]);
+	node->bbox = BoundingBox::fromTriangle(triangles[0]); //TODO: bottom-up boundingbox
 	for (size_t i=1; i<triangleCount; ++i) {
-		expandBoundingBox(node->bbox, triangles[i]);
+		node->bbox.expand(triangles[i]);
 	}
 
 	if (triangleCount < 2) {
 		return node;
 	}
 
-	std::sort(triangles, triangles + triangleCount, [this, depth] (size_t idx1, size_t idx2) {
-		glm::vec3 c1 = transformed_vertices[idx1 * 3 + 0].pos + transformed_vertices[idx1 * 3 + 1].pos + transformed_vertices[idx1 * 3 + 2].pos;
-		glm::vec3 c2 = transformed_vertices[idx2 * 3 + 0].pos + transformed_vertices[idx2 * 3 + 1].pos + transformed_vertices[idx2 * 3 + 2].pos;
+	std::sort(triangles, triangles + triangleCount, [this, depth] (const Triangle& t0, const Triangle& t1) {
+		glm::vec3 c0 = t0.v0->pos + t0.v1->pos + t0.v2->pos;
+		glm::vec3 c1 = t1.v0->pos + t1.v1->pos + t1.v2->pos;
 
 		switch (depth % 3) {
 			case 0:
-				return c1.x < c2.x;
+				return c0.x < c1.x;
 			case 1:
-				return c1.y < c2.y;
+				return c0.y < c1.y;
 			case 2:
-				return c1.z < c2.z;
+				return c0.z < c1.z;
 		}
 
 		return false;
 	});
 
-	size_t* mid = triangles + triangleCount / 2;
+	Triangle* mid = triangles + triangleCount / 2;
 
 	node->left = buildKdNode(triangles, mid - triangles, depth + 1);
 	node->right = buildKdNode(mid, triangles + triangleCount - mid, depth + 1);
@@ -184,15 +184,16 @@ std::unique_ptr<KdNode> Phong::buildKdNode(size_t* triangles, size_t triangleCou
 }
 
 void Phong::buildKdTree() {
-	triangles.resize(0); //TODO: proper resize
-	for (size_t i=0; i<transformed_vertices.size()/3; ++i) {
-		triangles.push_back(i);
+	triangles.resize(vertices.size() / 3);
+
+	for (size_t i=0; i<triangles.size(); ++i) {
+		triangles[i] = { &transformed_vertices[3 * i], &transformed_vertices[3 * i + 1], &transformed_vertices[3 * i + 2] };
 	}
 
 	kdTree = buildKdNode(triangles.data(), triangles.size(), 0);
 }
 
-bool Phong::rayTriangleIntersect(const glm::vec3& orig, const glm::vec3& dir, const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2, float& t, float& u, float& v) {
+bool Phong::rayTriangleIntersect(const glm::vec3& orig, const glm::vec3& dir, const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2, float& t, float& u, float& v) const {
 	glm::vec3 v0v1 = v1 - v0;
 	glm::vec3 v0v2 = v2 - v0;
 	glm::vec3 pvec = glm::cross(dir, v0v2);
@@ -215,7 +216,7 @@ bool Phong::rayTriangleIntersect(const glm::vec3& orig, const glm::vec3& dir, co
 	return true;
 }
 
-bool Phong::rayBoundingBoxIntersect(const glm::vec3& orig, const glm::vec3& dir, const BoundingBox& bbox) {
+bool Phong::rayBoundingBoxIntersect(const glm::vec3& orig, const glm::vec3& dir, const BoundingBox& bbox) const {
 	float tmin = (bbox.min.x - orig.x) / dir.x;
 	float tmax = (bbox.max.x - orig.x) / dir.x;
 
@@ -264,7 +265,7 @@ bool Phong::rayBoundingBoxIntersect(const glm::vec3& orig, const glm::vec3& dir,
 	return true;
 }
 
-bool Phong::rayKdNodeIntersection(KdNode* node, const glm::vec3& orig, const glm::vec3& dir, float& t, glm::vec3& color) {
+bool Phong::rayKdNodeIntersection(KdNode* node, const glm::vec3& orig, const glm::vec3& dir, float& t, glm::vec3& color) const {
 	if (rayBoundingBoxIntersect(orig, dir, node->bbox)) {
 		if (node->left || node->right) {
 			bool hitLeft = rayKdNodeIntersection(node->left.get(), orig, dir, t, color);
@@ -275,9 +276,9 @@ bool Phong::rayKdNodeIntersection(KdNode* node, const glm::vec3& orig, const glm
 			float currT, u, v;
 
 			for (size_t i=0; i<node->triangleCount; ++i) {
-				const Vertex& v0 = transformed_vertices[node->triangles[i] * 3 + 0];
-				const Vertex& v1 = transformed_vertices[node->triangles[i] * 3 + 1];
-				const Vertex& v2 = transformed_vertices[node->triangles[i] * 3 + 2];
+				const Vertex& v0 = *node->triangles[i].v0;
+				const Vertex& v1 = *node->triangles[i].v1;
+				const Vertex& v2 = *node->triangles[i].v2;
 
 				if (rayTriangleIntersect(orig, dir, v0.pos, v1.pos, v2.pos, currT, u, v) && currT > -epsilon && currT < t) {
 					color = {1, 1, 1};
@@ -312,7 +313,7 @@ bool Phong::rayKdNodeIntersection(KdNode* node, const glm::vec3& orig, const glm
 	return false;
 }
 
-glm::vec3 Phong::reflect(const glm::vec3& I, const glm::vec3& N) {
+glm::vec3 Phong::reflect(const glm::vec3& I, const glm::vec3& N) const {
     return I - 2 * glm::dot(I, N) * N;
 }
 
@@ -331,32 +332,6 @@ void Phong::calculatePixel(int x, int y) {
 	}
 
 	imageData[x + y * width] = int(color[0] * 255) | (int(color[1] * 255) << 8) | (int(color[2] * 255) << 16) | (0xFF << 24);
-}
-
-void Phong::getTriangle(size_t triangleId, glm::vec3 &p0, glm::vec3 &p1, glm::vec3 &p2) {
-	p0 = transformed_vertices[triangleId * 3 + 0].pos;
-	p1 = transformed_vertices[triangleId * 3 + 1].pos;
-	p2 = transformed_vertices[triangleId * 3 + 2].pos;
-}
-
-BoundingBox Phong::getBoundingBox(size_t triangleId) {
-	BoundingBox bbox;
-
-	const glm::vec3& p0 = transformed_vertices[triangleId * 3 + 0].pos;
-	const glm::vec3& p1 = transformed_vertices[triangleId * 3 + 1].pos;
-	const glm::vec3& p2 = transformed_vertices[triangleId * 3 + 2].pos;
-
-	bbox.min = glm::min(glm::min(p0, p1), p2);
-	bbox.max = glm::max(glm::max(p0, p1), p2);
-
-	return bbox;
-}
-
-void Phong::expandBoundingBox(BoundingBox& bbox, size_t triangleId) {
-	BoundingBox tmpbbox = getBoundingBox(triangleId);
-
-	bbox.min = glm::min(bbox.min, tmpbbox.min);
-	bbox.max = glm::max(bbox.max, tmpbbox.max);
 }
 
 void Phong::workerFunction() {

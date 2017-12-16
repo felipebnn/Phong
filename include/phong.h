@@ -23,16 +23,17 @@
 #include "tiny_obj_loader.h"
 
 #include "vertex.h"
+#include "triangle.h"
 #include "light.h"
 #include "kdnode.h"
 #include "boundingbox.h"
-
-class KdNode;
 
 class Phong {
 private:
 	std::vector<Vertex> vertices;
 	std::vector<Vertex> transformed_vertices;
+
+	std::vector<Triangle> triangles;
 
 	std::vector<Light> lights;
 	std::vector<Light> transformed_lights;
@@ -58,7 +59,6 @@ private:
 
 	size_t drawingIndex;
 
-	std::vector<size_t> triangles;
 	std::unique_ptr<KdNode> kdTree;
 
 	#ifdef THREADED
@@ -69,16 +69,13 @@ private:
 	void loadModel(const std::string& modelName);
 	void loadScene(const std::string& sceneFileName);
 	void applyTransformation();
-	std::unique_ptr<KdNode> buildKdNode(size_t* triangles, size_t triangleCount, int depth);
+	std::unique_ptr<KdNode> buildKdNode(Triangle* triangles, size_t triangleCount, int depth) const;
 	void buildKdTree();
-	bool rayTriangleIntersect(const glm::vec3& orig, const glm::vec3& dir, const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2, float& t, float& u, float& v);
-	bool rayBoundingBoxIntersect(const glm::vec3& orig, const glm::vec3& dir, const BoundingBox& bbox);
-	bool rayKdNodeIntersection(KdNode* node, const glm::vec3& orig, const glm::vec3& dir, float& t, glm::vec3& color);
-	glm::vec3 reflect(const glm::vec3& I, const glm::vec3& N);
+	bool rayTriangleIntersect(const glm::vec3& orig, const glm::vec3& dir, const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2, float& t, float& u, float& v) const;
+	bool rayBoundingBoxIntersect(const glm::vec3& orig, const glm::vec3& dir, const BoundingBox& bbox) const;
+	bool rayKdNodeIntersection(KdNode* node, const glm::vec3& orig, const glm::vec3& dir, float& t, glm::vec3& color) const;
+	glm::vec3 reflect(const glm::vec3& I, const glm::vec3& N) const;
 	void calculatePixel(int x, int y);
-	void getTriangle(size_t triangleId, glm::vec3 &p0, glm::vec3 &p1, glm::vec3 &p2);
-	BoundingBox getBoundingBox(size_t triangleId);
-	void expandBoundingBox(BoundingBox& bbox, size_t triangleId);
 
 	void workerFunction();
 	#ifdef THREADED
