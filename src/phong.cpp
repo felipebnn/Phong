@@ -170,7 +170,7 @@ void Phong::calculatePixel(int x, int y) {
 	if (ray.intersectKdNode(kdTree.get(), hitInfo)) {
 		glm::vec3 normal = hitInfo.triangle->v0->normal * (1 - hitInfo.u - hitInfo.v) + hitInfo.triangle->v1->normal * hitInfo.u + hitInfo.triangle->v2->normal * hitInfo.v;
 		glm::vec3 hitPoint = camera + dir * hitInfo.t;
-		glm::vec3 diffuse, specular;
+        glm::vec3 diffuse {}, specular {};
 
 		for (const Light& light : transformed_lights) {
 			glm::vec3 lightDir = glm::normalize(hitPoint - light.pos);
@@ -238,8 +238,8 @@ void Phong::joinWorkers() {
 void Phong::run(const std::string& sceneName) {
 	std::cout << "Rendering " << sceneName << "..." << std::endl;
 
-	model = {};
-	view = {};
+    model = glm::mat4(1);
+    view = glm::mat4(1);
 
 	loadScene("scenes/" + sceneName + ".txt");
 
