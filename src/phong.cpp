@@ -165,7 +165,7 @@ void Phong::calculatePixel(int x, int y) {
 	glm::vec3 dir = glm::normalize(glm::vec3{x, y, 0} - camera);
 	glm::vec3 color { 0.1, 0.1, 0.1 };
 	Ray ray { camera, dir };
-	
+
 	HitInfo hitInfo;
 	if (ray.intersectKdNode(kdTree.get(), hitInfo)) {
 		glm::vec3 normal = hitInfo.triangle->v0->normal * (1 - hitInfo.u - hitInfo.v) + hitInfo.triangle->v1->normal * hitInfo.u + hitInfo.triangle->v2->normal * hitInfo.v;
@@ -193,24 +193,16 @@ void Phong::calculatePixel(int x, int y) {
 }
 
 void Phong::workerFunction() {
-	size_t currentIndex;
-
 	while (true) {
-		{
-			#ifdef THREADED
-			std::lock_guard<std::mutex> lg(jobsMutex);
-			#endif
+		size_t currentIndex = drawingIndex.fetch_add(1);
 
-			if (drawingIndex % (pixelCount / 100) == 0) {
-				std::cout << "\rRender process: " << 100 * drawingIndex / pixelCount << "%";
-				std::cout.flush();
-			}
+		if (currentIndex % (pixelCount / 100) == 0) {
+			std::cout << "\rRender process: " << 100 * currentIndex / pixelCount << "%";
+			std::cout.flush();
+		}
 
-			if (drawingIndex >= pixelCount) {
-				break;
-			}
-
-			currentIndex = drawingIndex++;
+		if (currentIndex >= pixelCount) {
+			break;
 		}
 
 		calculatePixel(currentIndex % width, currentIndex / width);

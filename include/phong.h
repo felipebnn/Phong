@@ -9,6 +9,7 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <atomic>
 
 #ifdef THREADED
 #include <thread>
@@ -57,12 +58,11 @@ private:
 
 	constexpr static float epsilon = 1e-8;
 
-	size_t drawingIndex;
+	std::atomic_size_t drawingIndex;
 
 	std::unique_ptr<KdNode> kdTree;
 
 	#ifdef THREADED
-	std::mutex jobsMutex;
 	std::vector<std::thread> workers;
 	#endif
 
