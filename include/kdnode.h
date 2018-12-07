@@ -12,5 +12,5 @@ struct KdNode {
 	std::unique_ptr<KdNode> right;
 	Triangle triangle;
 
-	static std::unique_ptr<KdNode> buildKdNode(Triangle* trianglesX, size_t triangleCount, int depth);
+	static std::unique_ptr<KdNode> buildKdNode(std::vector<Triangle>::iterator begin, std::vector<Triangle>::iterator end, int depth=0);
 };

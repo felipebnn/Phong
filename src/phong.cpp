@@ -154,11 +154,11 @@ void Phong::applyTransformation() {
 void Phong::buildKdTree() {
 	std::vector<Triangle> triangles(vertices.size() / 3);
 
-	for (size_t i=0; i<triangles.size(); ++i) {
-		triangles[i] = { &transformed_vertices[3 * i], &transformed_vertices[3 * i + 1], &transformed_vertices[3 * i + 2] };
+	for (size_t i=0, j=0; i<vertices.size(); i += 3) {
+		triangles[j++] = { &transformed_vertices[i], &transformed_vertices[i + 1], &transformed_vertices[i + 2] };
 	}
 
-	kdTree = KdNode::buildKdNode(triangles.data(), triangles.size(), 0);
+	kdTree = KdNode::buildKdNode(triangles.begin(), triangles.end());
 }
 
 void Phong::calculatePixel(int x, int y) {
