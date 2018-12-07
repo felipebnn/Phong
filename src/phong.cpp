@@ -199,6 +199,7 @@ void Phong::workerFunction() {
 		size_t currentIndex = drawingIndex.fetch_add(1);
 
 		if (currentIndex % (pixelCount / 100) == 0) {
+			std::lock_guard<std::mutex> lg(coutMutex);
 			std::cout << "\rRender process: " << 100 * currentIndex / pixelCount << "%";
 			std::cout.flush();
 		}

@@ -63,6 +63,7 @@ private:
 	std::unique_ptr<KdNode> kdTree;
 
 	#ifdef THREADED
+	std::mutex coutMutex;
 	std::vector<std::thread> workers;
 	#endif
 
