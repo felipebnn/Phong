@@ -158,7 +158,7 @@ void Phong::buildKdTree() {
 		triangles[j++] = { &transformed_vertices[i], &transformed_vertices[i + 1], &transformed_vertices[i + 2] };
 	}
 
-	kdTree = KdNode::buildKdNode(triangles.begin(), triangles.end());
+	kdTree = std::make_unique<KdNode>(triangles.begin(), triangles.end());
 }
 
 void Phong::calculatePixel(int x, int y) {

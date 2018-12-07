@@ -2,13 +2,12 @@
 
 #include <algorithm>
 
-std::unique_ptr<KdNode> KdNode::buildKdNode(std::vector<Triangle>::iterator begin, std::vector<Triangle>::iterator end, int depth) {
-	std::unique_ptr<KdNode> node = std::make_unique<KdNode>();
+KdNode::KdNode(std::vector<Triangle>::iterator begin, std::vector<Triangle>::iterator end, int depth) {
 	ptrdiff_t len = end - begin;
 
 	if (len == 1) {
-		node->triangle = *begin;
-		node->bbox = BoundingBox::fromTriangle(*begin);
+		triangle = *begin;
+		bbox = BoundingBox::fromTriangle(*begin);
 	} else if (len > 1) {
 		auto mid = begin + len / 2;
 
@@ -18,12 +17,10 @@ std::unique_ptr<KdNode> KdNode::buildKdNode(std::vector<Triangle>::iterator begi
 
 		depth = (depth + 1) % 3;
 
-		node->left = buildKdNode(begin, mid, depth);
-		node->right = buildKdNode(mid, end, depth);
+		left = std::make_unique<KdNode>(begin, mid, depth);
+		right = std::make_unique<KdNode>(mid, end, depth);
 
-		node->bbox = node->left->bbox;
-		node->bbox.expand(node->right->bbox);
+		bbox = left->bbox;
+		bbox.expand(right->bbox);
 	}
-
-	return node;
 }
