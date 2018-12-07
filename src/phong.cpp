@@ -1,5 +1,7 @@
 #include "phong.h"
 
+#include <ctime>
+
 void Phong::loadModel(const std::string& modelName) {
 	vertices.resize(0);
 
@@ -228,19 +230,23 @@ void Phong::joinWorkers() {
 #endif
 
 void Phong::run(const std::string& sceneName) {
+	clock_t startTime = clock();
 	std::cout << "Rendering " << sceneName << "..." << std::endl;
 
 	model = glm::mat4(1);
 	view = glm::mat4(1);
 
 	loadScene("scenes/" + sceneName + ".txt");
+	clock_t loadTime = clock();
 
 	std::cout << vertices.size() / 3 << " triangles..." << std::endl;
 
 	applyTransformation();
+	clock_t transformationTime = clock();
 
 	std::cout << "Building KdTree..." << std::endl;
 	buildKdTree();
+	clock_t buildTime = clock();
 
 	drawingIndex = 0;
 
@@ -250,10 +256,18 @@ void Phong::run(const std::string& sceneName) {
 	#else
 	workerFunction();
 	#endif
+	clock_t rayTime = clock();
 
 	std::cout << std::endl << std::endl;
 
 	stbi_write_bmp(("images/" + sceneName + ".bmp").c_str(), width, height, 4, imageData.data());
+	clock_t endTime = clock();
+
+	std::cout << "Scene loading took " << (loadTime - startTime) << " milliseconds..." << std::endl;
+	std::cout << "Transformations took " << (transformationTime - loadTime) << " milliseconds..." << std::endl;
+	std::cout << "KdTree building took " << (buildTime - transformationTime) << " milliseconds..." << std::endl;
+	std::cout << "RayTracing took " << (rayTime - buildTime) << " milliseconds..." << std::endl;
+	std::cout << "Total time was " << (endTime - startTime) << " milliseconds..." << std::endl;
 }
 
 void Phong::killThreads() {
