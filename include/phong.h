@@ -37,8 +37,8 @@ private:
 
 	std::vector<uint32_t> imageData;
 
-	int width;
-	int height;
+	uint32_t width;
+	uint32_t height;
 	size_t pixelCount;
 
 	glm::mat4 model;
@@ -52,7 +52,7 @@ private:
 
 	glm::vec3 camera;
 
-	constexpr static float epsilon = 1e-8;
+	constexpr static float epsilon = 1e-8f;
 
 	std::atomic_size_t drawingIndex;
 
@@ -66,7 +66,7 @@ private:
 	void loadScene(const std::string& sceneFileName);
 	void applyTransformation();
 	void buildKdTree();
-	void calculatePixel(int x, int y);
+	void calculatePixel(uint32_t x, uint32_t y);
 
 	void workerFunction();
 	void spawnWorkers();

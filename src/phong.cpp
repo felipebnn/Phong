@@ -19,16 +19,16 @@ void Phong::loadModel(const std::string& modelName) {
 			Vertex vertex {};
 
 			vertex.pos = {
-				attrib.vertices[3 * index.vertex_index + 0],
-				attrib.vertices[3 * index.vertex_index + 1],
-				attrib.vertices[3 * index.vertex_index + 2]
+				attrib.vertices[3 * static_cast<size_t>(index.vertex_index) + 0],
+				attrib.vertices[3 * static_cast<size_t>(index.vertex_index) + 1],
+				attrib.vertices[3 * static_cast<size_t>(index.vertex_index) + 2]
 			};
 
 			if (index.normal_index != -1) {
 				vertex.normal = {
-					attrib.normals[3 * index.normal_index + 0],
-					attrib.normals[3 * index.normal_index + 1],
-					attrib.normals[3 * index.normal_index + 2]
+					attrib.normals[3 * static_cast<size_t>(index.normal_index) + 0],
+					attrib.normals[3 * static_cast<size_t>(index.normal_index) + 1],
+					attrib.normals[3 * static_cast<size_t>(index.normal_index) + 2]
 				};
 			}
 
@@ -68,7 +68,7 @@ void Phong::loadScene(const std::string& sceneFileName) {
 			sceneFile >> width >> height;
 			pixelCount = width * height;
 
-			model = glm::translate(model, glm::vec3{width/2, -height/2, 0});
+			model = glm::translate(model, glm::vec3{.5f * width, -.5f * height, 0});
 			imageData.resize(pixelCount);
 		} else if (name == "model") {
 			std::string modelName;
@@ -163,7 +163,7 @@ void Phong::buildKdTree() {
 	kdTree = std::make_unique<KdNode>(triangles.begin(), triangles.end());
 }
 
-void Phong::calculatePixel(int x, int y) {
+void Phong::calculatePixel(uint32_t x, uint32_t y) {
 	glm::vec3 dir = glm::normalize(glm::vec3{x, y, 0} - camera);
 	glm::vec3 color { 0.1, 0.1, 0.1 };
 	Ray ray { camera, dir };
@@ -185,13 +185,13 @@ void Phong::calculatePixel(int x, int y) {
 		color = albedo * ambient + diffuse * Kd + specular * Ks;
 	}
 
-	for (size_t j=0; j<3; ++j) {
+	for (int j=0; j<3; ++j) {
 		if (color[j] > 1) {
 			color[j] = 1;
 		}
 	}
 
-	imageData[x + y * width] = int(color[0] * 255) | (int(color[1] * 255) << 8) | (int(color[2] * 255) << 16) | (0xFF << 24);
+	imageData[x + y * width] = static_cast<uint32_t>(color[0] * 255) | (static_cast<uint32_t>(color[1] * 255) << 8) | (static_cast<uint32_t>(color[2] * 255) << 16) | (0xFFu << 24);
 }
 
 void Phong::workerFunction() {
@@ -208,7 +208,7 @@ void Phong::workerFunction() {
 			break;
 		}
 
-		calculatePixel(currentIndex % width, currentIndex / width);
+		calculatePixel(currentIndex % width, static_cast<uint32_t>(currentIndex / width));
 	}
 }
 
@@ -255,7 +255,7 @@ void Phong::run(const std::string& sceneName) {
 
 	std::cout << std::endl << std::endl;
 
-	stbi_write_bmp(("images/" + sceneName + ".bmp").c_str(), width, height, 4, imageData.data());
+	stbi_write_bmp(("images/" + sceneName + ".bmp").c_str(), static_cast<int32_t>(width), static_cast<int32_t>(height), 4, imageData.data());
 	clock_t endTime = clock();
 
 	std::cout << "Scene loading took " << (loadTime - startTime) << " milliseconds..." << std::endl;
@@ -266,7 +266,7 @@ void Phong::run(const std::string& sceneName) {
 }
 
 void Phong::killThreads() {
-	drawingIndex = -1;
+	drawingIndex = pixelCount;
 }
 
 void Phong::setThreadCount(unsigned threadCount) {

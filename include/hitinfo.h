@@ -2,6 +2,8 @@
 
 #include "triangle.h"
 
+#include <limits>
+
 struct HitInfo {
 	float t = std::numeric_limits<float>::max();
 	float u, v;

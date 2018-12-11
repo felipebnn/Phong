@@ -1,7 +1,7 @@
 #include "phong.h"
 
-Phong p;
-bool running = true;
+static Phong p;
+static bool running = true;
 
 int main(int argc, char const *argv[]) {
 	signal(SIGINT, [] (int) { p.killThreads(); running = false; });
