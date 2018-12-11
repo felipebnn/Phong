@@ -66,7 +66,7 @@ private:
 	void loadScene(const std::string& sceneFileName);
 	void applyTransformation();
 	void buildKdTree();
-	void calculatePixel(uint32_t x, uint32_t y);
+	uint32_t calculatePixel(uint32_t x, uint32_t y);
 
 	void workerFunction();
 	void spawnWorkers();

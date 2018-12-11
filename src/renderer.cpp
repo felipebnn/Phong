@@ -163,7 +163,7 @@ void Renderer::buildKdTree() {
 	kdTree = std::make_unique<KdNode>(triangles.begin(), triangles.end());
 }
 
-void Renderer::calculatePixel(uint32_t x, uint32_t y) {
+uint32_t Renderer::calculatePixel(uint32_t x, uint32_t y) {
 	glm::vec3 dir = glm::normalize(glm::vec3{x, y, 0} - camera);
 	glm::vec3 color { 0.1, 0.1, 0.1 };
 	Ray ray { camera, dir };
@@ -185,13 +185,13 @@ void Renderer::calculatePixel(uint32_t x, uint32_t y) {
 		color = albedo * ambient + diffuse * Kd + specular * Ks;
 	}
 
+	glm::vec<3, uint32_t> colorInt;
+
 	for (int j=0; j<3; ++j) {
-		if (color[j] > 1) {
-			color[j] = 1;
-		}
+		colorInt[j] = color[j] > 1.f ? 255 : static_cast<uint32_t>(color[j] * 255);
 	}
 
-	imageData[x + y * width] = static_cast<uint32_t>(color[0] * 255) | (static_cast<uint32_t>(color[1] * 255) << 8) | (static_cast<uint32_t>(color[2] * 255) << 16) | (0xFFu << 24);
+	return colorInt.r | (colorInt.g << 8) | (colorInt.b << 16) | (0xFFu << 24);
 }
 
 void Renderer::workerFunction() {
@@ -208,7 +208,7 @@ void Renderer::workerFunction() {
 			break;
 		}
 
-		calculatePixel(currentIndex % width, static_cast<uint32_t>(currentIndex / width));
+		imageData[currentIndex] = calculatePixel(currentIndex % width, static_cast<uint32_t>(currentIndex / width));
 	}
 }
 
