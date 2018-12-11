@@ -1,6 +1,6 @@
-#include "phong.h"
+#include "renderer.h"
 
-static Phong p;
+static Renderer p;
 static bool running = true;
 
 int main(int argc, char const *argv[]) {

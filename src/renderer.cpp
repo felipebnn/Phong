@@ -1,8 +1,8 @@
-#include "phong.h"
+#include "renderer.h"
 
 #include <ctime>
 
-void Phong::loadModel(const std::string& modelName) {
+void Renderer::loadModel(const std::string& modelName) {
 	vertices.resize(0);
 
 	tinyobj::attrib_t attrib;
@@ -54,7 +54,7 @@ void Phong::loadModel(const std::string& modelName) {
 	}
 }
 
-void Phong::loadScene(const std::string& sceneFileName) {
+void Renderer::loadScene(const std::string& sceneFileName) {
 	std::ifstream sceneFile(sceneFileName);
 
 	if (!sceneFile) {
@@ -128,7 +128,7 @@ void Phong::loadScene(const std::string& sceneFileName) {
 	}
 }
 
-void Phong::applyTransformation() {
+void Renderer::applyTransformation() {
 	view = glm::scale(view, glm::vec3{1, -1, 1});
 
 	glm::mat4 mv = view * model;
@@ -153,7 +153,7 @@ void Phong::applyTransformation() {
 	}
 }
 
-void Phong::buildKdTree() {
+void Renderer::buildKdTree() {
 	std::vector<Triangle> triangles(vertices.size() / 3);
 
 	for (size_t i=0, j=0; i<vertices.size(); i += 3) {
@@ -163,7 +163,7 @@ void Phong::buildKdTree() {
 	kdTree = std::make_unique<KdNode>(triangles.begin(), triangles.end());
 }
 
-void Phong::calculatePixel(uint32_t x, uint32_t y) {
+void Renderer::calculatePixel(uint32_t x, uint32_t y) {
 	glm::vec3 dir = glm::normalize(glm::vec3{x, y, 0} - camera);
 	glm::vec3 color { 0.1, 0.1, 0.1 };
 	Ray ray { camera, dir };
@@ -194,7 +194,7 @@ void Phong::calculatePixel(uint32_t x, uint32_t y) {
 	imageData[x + y * width] = static_cast<uint32_t>(color[0] * 255) | (static_cast<uint32_t>(color[1] * 255) << 8) | (static_cast<uint32_t>(color[2] * 255) << 16) | (0xFFu << 24);
 }
 
-void Phong::workerFunction() {
+void Renderer::workerFunction() {
 	while (true) {
 		size_t currentIndex = drawingIndex.fetch_add(1);
 
@@ -212,22 +212,22 @@ void Phong::workerFunction() {
 	}
 }
 
-void Phong::spawnWorkers() {
+void Renderer::spawnWorkers() {
 	std::cout << "Spawning " << threadCount - 1 << " extra workers..." << std::endl;
 
 	workers.resize(0);
 	for (size_t i=1; i<threadCount; ++i) {
-		workers.emplace_back(&Phong::workerFunction, this);
+		workers.emplace_back(&Renderer::workerFunction, this);
 	}
 }
 
-void Phong::joinWorkers() {
+void Renderer::joinWorkers() {
 	for (std::thread& t : workers) {
 		t.join();
 	}
 }
 
-void Phong::run(const std::string& sceneName) {
+void Renderer::run(const std::string& sceneName) {
 	clock_t startTime = clock();
 	std::cout << "Rendering " << sceneName << "..." << std::endl;
 
@@ -265,10 +265,10 @@ void Phong::run(const std::string& sceneName) {
 	std::cout << "Total time was " << (endTime - startTime) << " milliseconds..." << std::endl;
 }
 
-void Phong::killThreads() {
+void Renderer::killThreads() {
 	drawingIndex = pixelCount;
 }
 
-void Phong::setThreadCount(unsigned threadCount) {
+void Renderer::setThreadCount(unsigned threadCount) {
 	this->threadCount = threadCount;
 }

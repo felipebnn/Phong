@@ -27,7 +27,7 @@
 #include "light.h"
 #include "ray.h"
 
-class Phong {
+class Renderer {
 private:
 	std::vector<Vertex> vertices;
 	std::vector<Vertex> transformed_vertices;
