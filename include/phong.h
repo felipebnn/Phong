@@ -1,6 +1,5 @@
 #pragma once
 
-#define THREADED
 #define BARYCENTER_INTERPOLATION
 
 #include <csignal>
@@ -10,11 +9,8 @@
 #include <fstream>
 #include <vector>
 #include <atomic>
-
-#ifdef THREADED
 #include <thread>
 #include <mutex>
-#endif
 
 #define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
@@ -62,10 +58,9 @@ private:
 
 	std::unique_ptr<KdNode> kdTree;
 
-	#ifdef THREADED
+	unsigned threadCount = 1;
 	std::mutex coutMutex;
 	std::vector<std::thread> workers;
-	#endif
 
 	void loadModel(const std::string& modelName);
 	void loadScene(const std::string& sceneFileName);
@@ -74,12 +69,11 @@ private:
 	void calculatePixel(int x, int y);
 
 	void workerFunction();
-	#ifdef THREADED
 	void spawnWorkers();
 	void joinWorkers();
-	#endif
 
 public:
 	void run(const std::string& sceneName);
 	void killThreads();
+	void setThreadCount(unsigned threadCount);
 };

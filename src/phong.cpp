@@ -212,13 +212,11 @@ void Phong::workerFunction() {
 	}
 }
 
-#ifdef THREADED
 void Phong::spawnWorkers() {
-	size_t threadCount = std::thread::hardware_concurrency();
-	std::cout << "Spawning " << threadCount << " workers..." << std::endl;
+	std::cout << "Spawning " << threadCount - 1 << " extra workers..." << std::endl;
 
 	workers.resize(0);
-	for (size_t i=0; i<threadCount; ++i) {
+	for (size_t i=1; i<threadCount; ++i) {
 		workers.emplace_back(&Phong::workerFunction, this);
 	}
 }
@@ -228,7 +226,6 @@ void Phong::joinWorkers() {
 		t.join();
 	}
 }
-#endif
 
 void Phong::run(const std::string& sceneName) {
 	clock_t startTime = clock();
@@ -251,12 +248,9 @@ void Phong::run(const std::string& sceneName) {
 
 	drawingIndex = 0;
 
-	#ifdef THREADED
 	spawnWorkers();
-	joinWorkers();
-	#else
 	workerFunction();
-	#endif
+	joinWorkers();
 	clock_t rayTime = clock();
 
 	std::cout << std::endl << std::endl;
@@ -273,4 +267,8 @@ void Phong::run(const std::string& sceneName) {
 
 void Phong::killThreads() {
 	drawingIndex = -1;
+}
+
+void Phong::setThreadCount(unsigned threadCount) {
+	this->threadCount = threadCount;
 }

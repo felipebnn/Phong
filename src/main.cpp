@@ -5,6 +5,7 @@ bool running = true;
 
 int main(int argc, char const *argv[]) {
 	signal(SIGINT, [] (int) { p.killThreads(); running = false; });
+	p.setThreadCount(std::thread::hardware_concurrency());
 
 	if (argc == 1) {
 		p.run("scene");
